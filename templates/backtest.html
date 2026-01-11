@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backtest - Goldbach Trading Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+        .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+    <!-- Header -->
+    <header class="border-b border-gray-700 py-4">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-2xl font-bold text-yellow-400">GOLDBACH</h1>
+                <span class="text-gray-400">Backtesting</span>
+            </div>
+            <nav class="flex space-x-6">
+                <a href="/" class="text-gray-400 hover:text-white">Dashboard</a>
+                <a href="/backtest" class="text-yellow-400">Backtest</a>
+                <a href="/signals" class="text-gray-400 hover:text-white">Signals</a>
+                <a href="/docs" class="text-gray-400 hover:text-white">Docs</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- Configuration Panel -->
+        <div class="card rounded-xl p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Backtest Configuration</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div>
+                    <label class="block text-gray-400 text-sm mb-1">Initial Capital</label>
+                    <input type="number" id="initial-capital" value="10000"
+                           class="w-full bg-gray-800 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-yellow-400">
+                </div>
+                <div>
+                    <label class="block text-gray-400 text-sm mb-1">Position Size %</label>
+                    <input type="number" id="position-size" value="2" step="0.5"
+                           class="w-full bg-gray-800 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-yellow-400">
+                </div>
+                <div>
+                    <label class="block text-gray-400 text-sm mb-1">Min Signal Strength</label>
+                    <select id="min-strength" class="w-full bg-gray-800 rounded-lg px-4 py-2 outline-none">
+                        <option value="WEAK">WEAK</option>
+                        <option value="MEDIUM" selected>MEDIUM</option>
+                        <option value="STRONG">STRONG</option>
+                        <option value="EXCELLENT">EXCELLENT</option>
+                        <option value="PERFECT">PERFECT</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-400 text-sm mb-1">PO3 Size</label>
+                    <select id="po3-size" class="w-full bg-gray-800 rounded-lg px-4 py-2 outline-none">
+                        <option value="81">81</option>
+                        <option value="243">243</option>
+                        <option value="729" selected>729</option>
+                        <option value="2187">2187</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-gray-400 text-sm mb-1">Allowed Plans</label>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="flex items-center space-x-2 bg-gray-800 px-3 py-1 rounded">
+                            <input type="checkbox" value="EINSTEIN" checked class="plan-checkbox">
+                            <span>Einstein</span>
+                        </label>
+                        <label class="flex items-center space-x-2 bg-gray-800 px-3 py-1 rounded">
+                            <input type="checkbox" value="LIQUIDITY" checked class="plan-checkbox">
+                            <span>Liquidity</span>
+                        </label>
+                        <label class="flex items-center space-x-2 bg-gray-800 px-3 py-1 rounded">
+                            <input type="checkbox" value="FLOW_CONTINUATION" checked class="plan-checkbox">
+                            <span>Flow</span>
+                        </label>
+                        <label class="flex items-center space-x-2 bg-gray-800 px-3 py-1 rounded">
+                            <input type="checkbox" value="REBALANCE" checked class="plan-checkbox">
+                            <span>Rebalance</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-400 text-sm mb-1">Additional Options</label>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="flex items-center space-x-2 bg-gray-800 px-3 py-1 rounded">
+                            <input type="checkbox" id="require-gb-time">
+                            <span>Require Goldbach Time</span>
+                        </label>
+                        <label class="flex items-center space-x-2 bg-gray-800 px-3 py-1 rounded">
+                            <input type="checkbox" id="run-monte-carlo" checked>
+                            <span>Run Monte Carlo</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Input -->
+            <div class="mb-6">
+                <label class="block text-gray-400 text-sm mb-1">OHLC Data (JSON format)</label>
+                <textarea id="ohlc-data" rows="6" 
+                          class="w-full bg-gray-800 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-yellow-400 font-mono text-sm"
+                          placeholder='[{"date": "2025-01-01", "open": 21000, "high": 21100, "low": 20900, "close": 21050}, ...]'></textarea>
+                <div class="flex gap-2 mt-2">
+                    <button onclick="loadSampleData()" class="text-sm text-blue-400 hover:text-blue-300">
+                        Load Sample Data
+                    </button>
+                    <button onclick="loadFromFile()" class="text-sm text-blue-400 hover:text-blue-300">
+                        Load from CSV
+                    </button>
+                    <input type="file" id="csv-file" accept=".csv" class="hidden" onchange="handleFileUpload(event)">
+                </div>
+            </div>
+
+            <button onclick="runBacktest()" 
+                    class="w-full bg-yellow-400 text-black font-semibold py-3 rounded-lg hover:bg-yellow-300 transition">
+                RUN BACKTEST
+            </button>
+        </div>
+
+        <!-- Results Panel (Hidden initially) -->
+        <div id="results-panel" style="display: none;">
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+                <div class="card rounded-xl p-4 text-center">
+                    <div class="text-gray-400 text-sm">Total Trades</div>
+                    <div id="stat-total" class="text-2xl font-bold">--</div>
+                </div>
+                <div class="card rounded-xl p-4 text-center">
+                    <div class="text-gray-400 text-sm">Win Rate</div>
+                    <div id="stat-winrate" class="text-2xl font-bold text-green-400">--</div>
+                </div>
+                <div class="card rounded-xl p-4 text-center">
+                    <div class="text-gray-400 text-sm">Total P&L</div>
+                    <div id="stat-pnl" class="text-2xl font-bold">--</div>
+                </div>
+                <div class="card rounded-xl p-4 text-center">
+                    <div class="text-gray-400 text-sm">Profit Factor</div>
+                    <div id="stat-pf" class="text-2xl font-bold">--</div>
+                </div>
+                <div class="card rounded-xl p-4 text-center">
+                    <div class="text-gray-400 text-sm">Max Drawdown</div>
+                    <div id="stat-dd" class="text-2xl font-bold text-red-400">--</div>
+                </div>
+                <div class="card rounded-xl p-4 text-center">
+                    <div class="text-gray-400 text-sm">Expectancy</div>
+                    <div id="stat-exp" class="text-2xl font-bold">--</div>
+                </div>
+            </div>
+
+            <!-- Equity Curve -->
+            <div class="card rounded-xl p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-4">Equity Curve</h3>
+                <div class="h-64">
+                    <canvas id="equityChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Performance by Category -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- By Plan -->
+                <div class="card rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Performance by Plan</h3>
+                    <div id="stats-by-plan">
+                        <table class="w-full text-sm">
+                            <thead class="text-gray-400 border-b border-gray-700">
+                                <tr>
+                                    <th class="text-left py-2">Plan</th>
+                                    <th class="text-right py-2">Trades</th>
+                                    <th class="text-right py-2">Win Rate</th>
+                                    <th class="text-right py-2">P&L</th>
+                                </tr>
+                            </thead>
+                            <tbody id="plan-stats-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- By Signal Strength -->
+                <div class="card rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Performance by Signal Strength</h3>
+                    <div id="stats-by-strength">
+                        <table class="w-full text-sm">
+                            <thead class="text-gray-400 border-b border-gray-700">
+                                <tr>
+                                    <th class="text-left py-2">Strength</th>
+                                    <th class="text-right py-2">Trades</th>
+                                    <th class="text-right py-2">Win Rate</th>
+                                    <th class="text-right py-2">P&L</th>
+                                </tr>
+                            </thead>
+                            <tbody id="strength-stats-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monte Carlo Results -->
+            <div id="monte-carlo-panel" class="card rounded-xl p-6 mb-6" style="display: none;">
+                <h3 class="text-lg font-semibold mb-4">Monte Carlo Simulation (1000 runs)</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-gray-800 rounded-lg p-4">
+                        <div class="text-gray-400 text-sm">Final Capital (Mean)</div>
+                        <div id="mc-mean" class="text-xl font-bold">--</div>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-4">
+                        <div class="text-gray-400 text-sm">5th Percentile</div>
+                        <div id="mc-p5" class="text-xl font-bold text-red-400">--</div>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-4">
+                        <div class="text-gray-400 text-sm">95th Percentile</div>
+                        <div id="mc-p95" class="text-xl font-bold text-green-400">--</div>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-4">
+                        <div class="text-gray-400 text-sm">Risk of Ruin</div>
+                        <div id="mc-ror" class="text-xl font-bold">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trade List -->
+            <div class="card rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4">Trade History</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="text-gray-400 border-b border-gray-700">
+                            <tr>
+                                <th class="text-left py-2">#</th>
+                                <th class="text-left py-2">Entry</th>
+                                <th class="text-left py-2">Exit</th>
+                                <th class="text-left py-2">Direction</th>
+                                <th class="text-left py-2">Plan</th>
+                                <th class="text-right py-2">Entry Price</th>
+                                <th class="text-right py-2">Exit Price</th>
+                                <th class="text-right py-2">P&L</th>
+                                <th class="text-left py-2">Result</th>
+                                <th class="text-left py-2">Exit Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trades-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Full Report -->
+            <div class="card rounded-xl p-6 mt-6">
+                <h3 class="text-lg font-semibold mb-4">Full Report</h3>
+                <pre id="full-report" class="bg-gray-800 p-4 rounded-lg text-sm font-mono overflow-x-auto whitespace-pre-wrap"></pre>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let equityChart = null;
+
+        function loadSampleData() {
+            // Generate sample data
+            const data = [];
+            let price = 21000;
+            const startDate = new Date('2025-01-01');
+            
+            for (let i = 0; i < 100; i++) {
+                const date = new Date(startDate);
+                date.setDate(date.getDate() + i);
+                
+                // Skip weekends
+                if (date.getDay() === 0 || date.getDay() === 6) continue;
+                
+                const change = (Math.random() - 0.5) * 100;
+                const open = price;
+                const high = price + Math.abs(Math.random() * 50);
+                const low = price - Math.abs(Math.random() * 50);
+                const close = price + change;
+                price = close;
+                
+                data.push({
+                    date: date.toISOString().split('T')[0],
+                    open: parseFloat(open.toFixed(2)),
+                    high: parseFloat(high.toFixed(2)),
+                    low: parseFloat(low.toFixed(2)),
+                    close: parseFloat(close.toFixed(2))
+                });
+            }
+            
+            document.getElementById('ohlc-data').value = JSON.stringify(data, null, 2);
+        }
+
+        function loadFromFile() {
+            document.getElementById('csv-file').click();
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csv = e.target.result;
+                const lines = csv.split('\n');
+                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                
+                const data = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const values = lines[i].split(',');
+                    if (values.length < 5) continue;
+                    
+                    const row = {};
+                    headers.forEach((header, idx) => {
+                        row[header] = values[idx]?.trim();
+                    });
+                    
+                    data.push({
+                        date: row.date || row.datetime,
+                        open: parseFloat(row.open),
+                        high: parseFloat(row.high),
+                        low: parseFloat(row.low),
+                        close: parseFloat(row.close)
+                    });
+                }
+                
+                document.getElementById('ohlc-data').value = JSON.stringify(data, null, 2);
+            };
+            reader.readAsText(file);
+        }
+
+        async function runBacktest() {
+            const dataText = document.getElementById('ohlc-data').value;
+            
+            if (!dataText) {
+                alert('Please load OHLC data first');
+                return;
+            }
+            
+            let data;
+            try {
+                data = JSON.parse(dataText);
+            } catch (e) {
+                alert('Invalid JSON data');
+                return;
+            }
+            
+            const config = {
+                initial_capital: parseFloat(document.getElementById('initial-capital').value),
+                position_size_pct: parseFloat(document.getElementById('position-size').value),
+                min_signal_strength: document.getElementById('min-strength').value,
+                po3_size: parseInt(document.getElementById('po3-size').value),
+                require_goldbach_time: document.getElementById('require-gb-time').checked,
+                run_monte_carlo: document.getElementById('run-monte-carlo').checked
+            };
+            
+            try {
+                const response = await fetch('/api/backtest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data, config })
+                });
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    alert('Backtest error: ' + result.error);
+                    return;
+                }
+                
+                displayResults(result);
+            } catch (error) {
+                console.error('Backtest error:', error);
+                alert('Error running backtest');
+            }
+        }
+
+        function displayResults(result) {
+            document.getElementById('results-panel').style.display = 'block';
+            
+            const stats = result.statistics;
+            
+            // Summary stats
+            document.getElementById('stat-total').textContent = stats.total_trades;
+            document.getElementById('stat-winrate').textContent = stats.win_rate.toFixed(1) + '%';
+            document.getElementById('stat-pnl').textContent = '$' + stats.total_pnl.toFixed(2);
+            document.getElementById('stat-pf').textContent = stats.profit_factor.toFixed(2);
+            document.getElementById('stat-dd').textContent = stats.max_drawdown_pct.toFixed(1) + '%';
+            document.getElementById('stat-exp').textContent = '$' + stats.expectancy.toFixed(2);
+            
+            // Equity curve
+            if (stats.equity_curve && stats.equity_curve.length > 0) {
+                const ctx = document.getElementById('equityChart').getContext('2d');
+                
+                if (equityChart) equityChart.destroy();
+                
+                equityChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: stats.equity_curve.map((_, i) => i),
+                        datasets: [{
+                            label: 'Equity',
+                            data: stats.equity_curve,
+                            borderColor: '#eab308',
+                            backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { display: false },
+                            y: {
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                ticks: { color: '#9ca3af' }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Stats by plan
+            const planBody = document.getElementById('plan-stats-body');
+            planBody.innerHTML = '';
+            for (const [plan, s] of Object.entries(stats.stats_by_plan || {})) {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-800';
+                row.innerHTML = `
+                    <td class="py-2">${plan}</td>
+                    <td class="py-2 text-right">${s.trades}</td>
+                    <td class="py-2 text-right ${s.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}">${s.win_rate?.toFixed(1) || 0}%</td>
+                    <td class="py-2 text-right ${s.pnl >= 0 ? 'text-green-400' : 'text-red-400'}">$${s.pnl?.toFixed(2) || 0}</td>
+                `;
+                planBody.appendChild(row);
+            }
+            
+            // Stats by strength
+            const strengthBody = document.getElementById('strength-stats-body');
+            strengthBody.innerHTML = '';
+            for (const [strength, s] of Object.entries(stats.stats_by_strength || {})) {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-800';
+                row.innerHTML = `
+                    <td class="py-2">${strength}</td>
+                    <td class="py-2 text-right">${s.trades}</td>
+                    <td class="py-2 text-right ${s.win_rate >= 50 ? 'text-green-400' : 'text-red-400'}">${s.win_rate?.toFixed(1) || 0}%</td>
+                    <td class="py-2 text-right ${s.pnl >= 0 ? 'text-green-400' : 'text-red-400'}">$${s.pnl?.toFixed(2) || 0}</td>
+                `;
+                strengthBody.appendChild(row);
+            }
+            
+            // Monte Carlo
+            if (result.monte_carlo) {
+                document.getElementById('monte-carlo-panel').style.display = 'block';
+                const mc = result.monte_carlo;
+                document.getElementById('mc-mean').textContent = '$' + mc.final_capital.mean.toFixed(2);
+                document.getElementById('mc-p5').textContent = '$' + mc.final_capital.percentile_5.toFixed(2);
+                document.getElementById('mc-p95').textContent = '$' + mc.final_capital.percentile_95.toFixed(2);
+                document.getElementById('mc-ror').textContent = mc.risk_of_ruin.toFixed(2) + '%';
+            }
+            
+            // Trades table
+            const tradesBody = document.getElementById('trades-body');
+            tradesBody.innerHTML = '';
+            (result.trades || []).forEach(trade => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-800';
+                const resultColor = trade.result === 'WIN' ? 'text-green-400' : (trade.result === 'LOSS' ? 'text-red-400' : 'text-gray-400');
+                row.innerHTML = `
+                    <td class="py-2">${trade.id}</td>
+                    <td class="py-2 text-xs">${trade.entry_time}</td>
+                    <td class="py-2 text-xs">${trade.exit_time}</td>
+                    <td class="py-2 ${trade.direction === 'LONG' ? 'text-green-400' : 'text-red-400'}">${trade.direction}</td>
+                    <td class="py-2">${trade.plan}</td>
+                    <td class="py-2 text-right font-mono">${trade.entry_price.toFixed(2)}</td>
+                    <td class="py-2 text-right font-mono">${trade.exit_price.toFixed(2)}</td>
+                    <td class="py-2 text-right font-mono ${trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}">$${trade.pnl.toFixed(2)}</td>
+                    <td class="py-2 ${resultColor}">${trade.result}</td>
+                    <td class="py-2 text-xs">${trade.exit_reason}</td>
+                `;
+                tradesBody.appendChild(row);
+            });
+            
+            // Full report
+            document.getElementById('full-report').textContent = result.report || 'No report available';
+            
+            // Scroll to results
+            document.getElementById('results-panel').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

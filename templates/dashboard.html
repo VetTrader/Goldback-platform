@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goldbach Trading Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+        .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+        .goldbach-level { transition: all 0.3s ease; }
+        .goldbach-level:hover { transform: scale(1.05); }
+        .layer-liquidity { border-left: 4px solid #22c55e; }
+        .layer-flow { border-left: 4px solid #3b82f6; }
+        .layer-rebalance { border-left: 4px solid #ef4444; }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+    <!-- Header -->
+    <header class="border-b border-gray-700 py-4">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-2xl font-bold text-yellow-400">GOLDBACH</h1>
+                <span class="text-gray-400">Unified Trading Platform</span>
+            </div>
+            <nav class="flex space-x-6">
+                <a href="/" class="text-yellow-400">Dashboard</a>
+                <a href="/backtest" class="text-gray-400 hover:text-white">Backtest</a>
+                <a href="/signals" class="text-gray-400 hover:text-white">Signals</a>
+                <a href="/docs" class="text-gray-400 hover:text-white">Docs</a>
+            </nav>
+            <div class="flex items-center space-x-4">
+                <span id="connection-status" class="text-green-400 text-sm">● Connected</span>
+                <span id="current-time" class="text-gray-400 text-sm"></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- Quick Analysis Panel -->
+        <div class="card rounded-xl p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <span class="w-3 h-3 bg-yellow-400 rounded-full mr-2"></span>
+                Quick Analysis
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-gray-400 text-sm mb-1">Price</label>
+                    <input type="number" id="price-input" 
+                           class="w-full bg-gray-800 rounded-lg px-4 py-2 focus:ring-2 focus:ring-yellow-400 outline-none"
+                           placeholder="21500" value="21500">
+                </div>
+                <div>
+                    <label class="block text-gray-400 text-sm mb-1">Symbol</label>
+                    <select id="symbol-select" class="w-full bg-gray-800 rounded-lg px-4 py-2 outline-none">
+                        <option value="NQ">NQ (Nasdaq)</option>
+                        <option value="ES">ES (S&P 500)</option>
+                        <option value="YM">YM (Dow)</option>
+                        <option value="EURUSD">EUR/USD</option>
+                        <option value="XAUUSD">Gold</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-400 text-sm mb-1">PO3 Size</label>
+                    <select id="po3-select" class="w-full bg-gray-800 rounded-lg px-4 py-2 outline-none">
+                        <option value="81">81 (15M)</option>
+                        <option value="243">243 (1H)</option>
+                        <option value="729" selected>729 (4H/D)</option>
+                        <option value="2187">2187 (W)</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button onclick="runAnalysis()" 
+                            class="w-full bg-yellow-400 text-black font-semibold py-2 rounded-lg hover:bg-yellow-300 transition">
+                        ANALYZE
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Position Info -->
+            <div class="card rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4 text-gray-300">Position Info</h3>
+                <div id="position-info">
+                    <div class="text-center py-8 text-gray-500">
+                        Enter price and click Analyze
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bias Analysis -->
+            <div class="card rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4 text-gray-300">Bias Analysis</h3>
+                <div id="bias-info">
+                    <div class="text-center py-8 text-gray-500">
+                        Waiting for analysis...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timing Filters -->
+            <div class="card rounded-xl p-6">
+                <h3 class="text-lg font-semibold mb-4 text-gray-300">Timing Filters</h3>
+                <div id="timing-info">
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">Goldbach Time</span>
+                            <span id="gb-time" class="text-gray-300">--:--</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">AMD Cycle</span>
+                            <span id="amd-cycle" class="text-gray-300">--</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">Partition Day</span>
+                            <span id="partition-day" class="text-gray-300">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trade Setup -->
+        <div class="card rounded-xl p-6 mb-6" id="setup-panel" style="display: none;">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <span class="w-3 h-3 bg-green-400 rounded-full mr-2 pulse"></span>
+                Trade Setup Available
+            </h2>
+            <div id="setup-content">
+                <!-- Will be populated dynamically -->
+            </div>
+            <div class="mt-4 flex space-x-4">
+                <button onclick="sendSignal()" 
+                        class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-400 transition">
+                    📱 Send to Telegram
+                </button>
+                <button onclick="saveSignal()" 
+                        class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-400 transition">
+                    💾 Save Signal
+                </button>
+            </div>
+        </div>
+
+        <!-- Goldbach Levels Visualization -->
+        <div class="card rounded-xl p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Goldbach Levels</h2>
+            <div id="levels-chart" class="h-96">
+                <canvas id="levelsCanvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Three Layers -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <!-- Liquidity Layer -->
+            <div class="card rounded-xl p-6 layer-liquidity">
+                <h3 class="text-lg font-semibold mb-4 text-green-400">LIQUIDITY LAYER</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">HIGH [100]</span>
+                        <span id="level-100">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">REJ [97]</span>
+                        <span id="level-97">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">LLOD [93]</span>
+                        <span id="level-93">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">IRL [89]</span>
+                        <span id="level-89">--</span>
+                    </div>
+                    <div class="flex justify-between bg-yellow-400/20 px-2 py-1 rounded">
+                        <span class="text-yellow-400">GIP [83]</span>
+                        <span id="level-83" class="text-yellow-400">--</span>
+                    </div>
+                    <div class="border-t border-gray-700 my-2"></div>
+                    <div class="flex justify-between bg-yellow-400/20 px-2 py-1 rounded">
+                        <span class="text-yellow-400">GIP [17]</span>
+                        <span id="level-17" class="text-yellow-400">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">IRL [11]</span>
+                        <span id="level-11">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">LLOD [7]</span>
+                        <span id="level-7">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">REJ [3]</span>
+                        <span id="level-3">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">LOW [0]</span>
+                        <span id="level-0">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flow Layer -->
+            <div class="card rounded-xl p-6 layer-flow">
+                <h3 class="text-lg font-semibold mb-4 text-blue-400">FLOW LAYER</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">FLOW [71]</span>
+                        <span id="level-71">--</span>
+                    </div>
+                    <div class="flex justify-between text-gray-500">
+                        <span>nGB [65]</span>
+                        <span id="level-65">--</span>
+                    </div>
+                    <div class="border-t border-gray-700 my-2"></div>
+                    <div class="flex justify-between text-gray-500">
+                        <span>nGB [35]</span>
+                        <span id="level-35">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">FLOW [29]</span>
+                        <span id="level-29">--</span>
+                    </div>
+                </div>
+                <div class="mt-4 p-3 bg-blue-400/10 rounded-lg text-sm">
+                    <p class="text-blue-300"><strong>Bias Rule:</strong></p>
+                    <p class="text-gray-400">Над [71] = Premium Zone</p>
+                    <p class="text-gray-400">Под [29] = Discount Zone</p>
+                </div>
+            </div>
+
+            <!-- Rebalance Layer -->
+            <div class="card rounded-xl p-6 layer-rebalance">
+                <h3 class="text-lg font-semibold mb-4 text-red-400">REBALANCE LAYER</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">EXT.REB [59]</span>
+                        <span id="level-59">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">INT.REB [53]</span>
+                        <span id="level-53">--</span>
+                    </div>
+                    <div class="flex justify-between bg-gray-700 px-2 py-1 rounded">
+                        <span class="text-white">EQ [50]</span>
+                        <span id="level-50" class="text-white">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">INT.REB [47]</span>
+                        <span id="level-47">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">EXT.REB [41]</span>
+                        <span id="level-41">--</span>
+                    </div>
+                </div>
+                <div class="mt-4 p-3 bg-red-400/10 rounded-lg text-sm">
+                    <p class="text-red-300"><strong>Warning:</strong></p>
+                    <p class="text-gray-400">Консолидация и chop zone</p>
+                    <p class="text-gray-400">Изчакай пробив!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Signals -->
+        <div class="card rounded-xl p-6">
+            <h2 class="text-xl font-semibold mb-4">Recent Signals</h2>
+            <div id="recent-signals" class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="text-gray-400 border-b border-gray-700">
+                        <tr>
+                            <th class="text-left py-2">Time</th>
+                            <th class="text-left py-2">Symbol</th>
+                            <th class="text-left py-2">Plan</th>
+                            <th class="text-left py-2">Bias</th>
+                            <th class="text-left py-2">Strength</th>
+                            <th class="text-left py-2">Entry</th>
+                            <th class="text-left py-2">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="signals-table">
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-gray-500">No signals yet</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-700 py-4 mt-8">
+        <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+            Goldbach Unified Trading Platform v1.0 | Based on Goldbach Trifecta & Fundamentals by Hopiplaka
+        </div>
+    </footer>
+
+    <script>
+        // WebSocket connection
+        const socket = io();
+        let currentAnalysis = null;
+        let levelsChart = null;
+
+        socket.on('connect', () => {
+            document.getElementById('connection-status').innerHTML = '● Connected';
+            document.getElementById('connection-status').className = 'text-green-400 text-sm';
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('connection-status').innerHTML = '● Disconnected';
+            document.getElementById('connection-status').className = 'text-red-400 text-sm';
+        });
+
+        socket.on('new_signal', (signal) => {
+            addSignalToTable(signal);
+        });
+
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleTimeString();
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Run Analysis
+        async function runAnalysis() {
+            const price = document.getElementById('price-input').value;
+            const symbol = document.getElementById('symbol-select').value;
+            const po3Size = document.getElementById('po3-select').value;
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ price, symbol, po3_size: parseInt(po3Size) })
+                });
+
+                const data = await response.json();
+                currentAnalysis = data;
+                updateUI(data);
+            } catch (error) {
+                console.error('Analysis error:', error);
+            }
+        }
+
+        // Update UI with analysis results
+        function updateUI(data) {
+            // Position Info
+            const posInfo = document.getElementById('position-info');
+            const pos = data.position;
+            posInfo.innerHTML = `
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Range</span>
+                        <span class="font-mono">#${pos.range.range_num}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Range Low</span>
+                        <span class="font-mono">${pos.range.low.toFixed(2)}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Range High</span>
+                        <span class="font-mono">${pos.range.high.toFixed(2)}</span>
+                    </div>
+                    <div class="flex justify-between bg-gray-700 px-2 py-1 rounded">
+                        <span>Position</span>
+                        <span class="font-bold text-yellow-400">${pos.position_str}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Layer</span>
+                        <span class="font-semibold ${getLayerColor(pos.layer)}">${pos.layer || 'NEUTRAL'}</span>
+                    </div>
+                </div>
+            `;
+
+            // Bias Info
+            const biasInfo = document.getElementById('bias-info');
+            const bias = data.bias;
+            const biasColor = bias.bias === 'BULLISH' ? 'text-green-400' : (bias.bias === 'BEARISH' ? 'text-red-400' : 'text-gray-400');
+            biasInfo.innerHTML = `
+                <div class="text-center mb-4">
+                    <div class="text-4xl font-bold ${biasColor}">${bias.bias}</div>
+                    <div class="text-2xl text-gray-300">${bias.confidence}%</div>
+                </div>
+                <div class="space-y-2 text-sm">
+                    ${bias.reasoning.map(r => `<div class="text-gray-400">• ${r}</div>`).join('')}
+                </div>
+            `;
+
+            // Timing Info
+            const gbTime = data.goldbach_time;
+            document.getElementById('gb-time').innerHTML = `
+                ${gbTime.hour}:${String(gbTime.minute).padStart(2, '0')} = ${gbTime.sum_value}
+                ${gbTime.is_goldbach ? '<span class="text-green-400">✓</span>' : '<span class="text-gray-500">✗</span>'}
+            `;
+            document.getElementById('amd-cycle').textContent = data.amd_cycle.cycle_name;
+            document.getElementById('partition-day').textContent = `Day ${data.monthly_partition.partition_day}`;
+
+            // Update levels
+            updateLevels(pos.range);
+
+            // Show setup if available
+            if (data.setup) {
+                showSetup(data.setup);
+            } else {
+                document.getElementById('setup-panel').style.display = 'none';
+            }
+
+            // Update chart
+            updateLevelsChart(pos);
+        }
+
+        function getLayerColor(layer) {
+            switch(layer) {
+                case 'LIQUIDITY': return 'text-green-400';
+                case 'FLOW': return 'text-blue-400';
+                case 'REBALANCE': return 'text-red-400';
+                default: return 'text-gray-400';
+            }
+        }
+
+        function updateLevels(range) {
+            const levels = range.levels;
+            levels.forEach(level => {
+                const el = document.getElementById(`level-${level.level_pct}`);
+                if (el) {
+                    el.textContent = level.price.toFixed(2);
+                }
+            });
+        }
+
+        function showSetup(setup) {
+            const panel = document.getElementById('setup-panel');
+            const content = document.getElementById('setup-content');
+            
+            const biasColor = setup.bias === 'BULLISH' ? 'text-green-400' : 'text-red-400';
+            const strengthColor = {
+                'WEAK': 'text-gray-400',
+                'MEDIUM': 'text-blue-400',
+                'STRONG': 'text-green-400',
+                'EXCELLENT': 'text-yellow-400',
+                'PERFECT': 'text-purple-400'
+            }[setup.signal_strength] || 'text-gray-400';
+
+            content.innerHTML = `
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <div class="text-gray-400 text-sm">Plan</div>
+                        <div class="font-semibold text-lg">${setup.plan}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-sm">Bias</div>
+                        <div class="font-semibold text-lg ${biasColor}">${setup.bias} (${setup.confidence}%)</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-sm">Strength</div>
+                        <div class="font-semibold text-lg ${strengthColor}">${setup.signal_strength}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-sm">Entry Zone</div>
+                        <div class="font-mono">${setup.entry_zone[0].toFixed(2)} - ${setup.entry_zone[1].toFixed(2)}</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    <div>
+                        <div class="text-gray-400 text-sm">Stop Loss</div>
+                        <div class="font-mono text-red-400">${setup.stop_loss.toFixed(2)}</div>
+                    </div>
+                    ${setup.targets.map((t, i) => `
+                        <div>
+                            <div class="text-gray-400 text-sm">${t.name}</div>
+                            <div class="font-mono text-green-400">${t.price.toFixed(2)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="mt-4 p-3 bg-gray-800 rounded-lg">
+                    <div class="text-gray-400 text-sm mb-2">Reasoning:</div>
+                    ${setup.reasoning.map(r => `<div class="text-sm text-gray-300">• ${r}</div>`).join('')}
+                </div>
+            `;
+            
+            panel.style.display = 'block';
+        }
+
+        function updateLevelsChart(pos) {
+            const ctx = document.getElementById('levelsCanvas').getContext('2d');
+            
+            if (levelsChart) {
+                levelsChart.destroy();
+            }
+
+            const levels = pos.range.levels;
+            const labels = levels.map(l => `[${l.level_pct}] ${l.name}`);
+            const prices = levels.map(l => l.price);
+            const colors = levels.map(l => {
+                if (l.layer === 'LIQUIDITY') return 'rgba(34, 197, 94, 0.6)';
+                if (l.layer === 'FLOW') return 'rgba(59, 130, 246, 0.6)';
+                if (l.layer === 'REBALANCE') return 'rgba(239, 68, 68, 0.6)';
+                return 'rgba(107, 114, 128, 0.4)';
+            });
+
+            levelsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Price Levels',
+                        data: prices,
+                        backgroundColor: colors,
+                        borderColor: colors.map(c => c.replace('0.6', '1')),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#9ca3af' }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: '#9ca3af', font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+
+            // Add current price line
+            const currentPrice = pos.price;
+            // This would need annotation plugin for horizontal line
+        }
+
+        async function sendSignal() {
+            if (!currentAnalysis || !currentAnalysis.setup) return;
+            
+            try {
+                const response = await fetch('/api/signal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        price: currentAnalysis.price,
+                        symbol: currentAnalysis.symbol,
+                        send_notification: true
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.notification_sent) {
+                    alert('Signal sent to Telegram!');
+                }
+            } catch (error) {
+                console.error('Error sending signal:', error);
+            }
+        }
+
+        async function saveSignal() {
+            if (!currentAnalysis || !currentAnalysis.setup) return;
+            
+            try {
+                const response = await fetch('/api/signal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        price: currentAnalysis.price,
+                        symbol: currentAnalysis.symbol,
+                        send_notification: false
+                    })
+                });
+                
+                const data = await response.json();
+                alert('Signal saved!');
+                addSignalToTable(data.signal);
+            } catch (error) {
+                console.error('Error saving signal:', error);
+            }
+        }
+
+        function addSignalToTable(signal) {
+            const tbody = document.getElementById('signals-table');
+            const biasColor = signal.bias === 'BULLISH' ? 'text-green-400' : 'text-red-400';
+            
+            const row = document.createElement('tr');
+            row.className = 'border-b border-gray-800';
+            row.innerHTML = `
+                <td class="py-2">${new Date(signal.timestamp).toLocaleString()}</td>
+                <td class="py-2">${signal.symbol}</td>
+                <td class="py-2">${signal.plan}</td>
+                <td class="py-2 ${biasColor}">${signal.bias}</td>
+                <td class="py-2">${signal.signal_strength}</td>
+                <td class="py-2 font-mono">${signal.entry_price.toFixed(2)}</td>
+                <td class="py-2"><span class="px-2 py-1 bg-yellow-400/20 text-yellow-400 rounded text-xs">${signal.status}</span></td>
+            `;
+            
+            // Remove "no signals" message if present
+            if (tbody.children.length === 1 && tbody.children[0].children[0].colSpan) {
+                tbody.innerHTML = '';
+            }
+            
+            tbody.insertBefore(row, tbody.firstChild);
+        }
+
+        // Load recent signals on page load
+        async function loadRecentSignals() {
+            try {
+                const response = await fetch('/api/signals?limit=10');
+                const signals = await response.json();
+                
+                if (signals.length > 0) {
+                    document.getElementById('signals-table').innerHTML = '';
+                    signals.reverse().forEach(signal => addSignalToTable(signal));
+                }
+            } catch (error) {
+                console.error('Error loading signals:', error);
+            }
+        }
+
+        // Initialize
+        loadRecentSignals();
+
+        // Auto-update timing info
+        async function updateTimingInfo() {
+            try {
+                const [gbResponse, amdResponse, partResponse] = await Promise.all([
+                    fetch('/api/goldbach-time'),
+                    fetch('/api/amd-cycle'),
+                    fetch('/api/partition')
+                ]);
+
+                const gbData = await gbResponse.json();
+                const amdData = await amdResponse.json();
+                const partData = await partResponse.json();
+
+                document.getElementById('gb-time').innerHTML = `
+                    ${gbData.current.hour}:${String(gbData.current.minute).padStart(2, '0')} = ${gbData.current.sum_value}
+                    ${gbData.current.is_goldbach ? '<span class="text-green-400">✓ GB</span>' : ''}
+                `;
+                document.getElementById('amd-cycle').textContent = amdData.cycle_name;
+                document.getElementById('partition-day').textContent = `Day ${partData.partition_day}`;
+            } catch (error) {
+                console.error('Error updating timing:', error);
+            }
+        }
+
+        setInterval(updateTimingInfo, 60000); // Update every minute
+        updateTimingInfo();
+    </script>
+</body>
+</html>

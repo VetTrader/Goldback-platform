@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signals - Goldbach Trading Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+        .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+        .signal-card { transition: all 0.3s ease; }
+        .signal-card:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+    <!-- Header -->
+    <header class="border-b border-gray-700 py-4">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-2xl font-bold text-yellow-400">GOLDBACH</h1>
+                <span class="text-gray-400">Signal History</span>
+            </div>
+            <nav class="flex space-x-6">
+                <a href="/" class="text-gray-400 hover:text-white">Dashboard</a>
+                <a href="/backtest" class="text-gray-400 hover:text-white">Backtest</a>
+                <a href="/signals" class="text-yellow-400">Signals</a>
+                <a href="/docs" class="text-gray-400 hover:text-white">Docs</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="card rounded-xl p-4 text-center">
+                <div class="text-gray-400 text-sm">Total Signals</div>
+                <div id="stat-total" class="text-3xl font-bold text-yellow-400">0</div>
+            </div>
+            <div class="card rounded-xl p-4 text-center">
+                <div class="text-gray-400 text-sm">Bullish</div>
+                <div id="stat-bullish" class="text-3xl font-bold text-green-400">0</div>
+            </div>
+            <div class="card rounded-xl p-4 text-center">
+                <div class="text-gray-400 text-sm">Bearish</div>
+                <div id="stat-bearish" class="text-3xl font-bold text-red-400">0</div>
+            </div>
+            <div class="card rounded-xl p-4 text-center">
+                <div class="text-gray-400 text-sm">Today</div>
+                <div id="stat-today" class="text-3xl font-bold">0</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card rounded-xl p-4 mb-6">
+            <div class="flex flex-wrap gap-4 items-center">
+                <div>
+                    <label class="text-gray-400 text-sm">Symbol</label>
+                    <select id="filter-symbol" onchange="filterSignals()" class="ml-2 bg-gray-800 rounded px-3 py-1 outline-none">
+                        <option value="">All</option>
+                        <option value="NQ">NQ</option>
+                        <option value="ES">ES</option>
+                        <option value="EURUSD">EUR/USD</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm">Bias</label>
+                    <select id="filter-bias" onchange="filterSignals()" class="ml-2 bg-gray-800 rounded px-3 py-1 outline-none">
+                        <option value="">All</option>
+                        <option value="BULLISH">Bullish</option>
+                        <option value="BEARISH">Bearish</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm">Plan</label>
+                    <select id="filter-plan" onchange="filterSignals()" class="ml-2 bg-gray-800 rounded px-3 py-1 outline-none">
+                        <option value="">All</option>
+                        <option value="EINSTEIN">Einstein</option>
+                        <option value="LIQUIDITY">Liquidity</option>
+                        <option value="FLOW_CONTINUATION">Flow</option>
+                        <option value="REBALANCE">Rebalance</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm">Strength</label>
+                    <select id="filter-strength" onchange="filterSignals()" class="ml-2 bg-gray-800 rounded px-3 py-1 outline-none">
+                        <option value="">All</option>
+                        <option value="PERFECT">Perfect</option>
+                        <option value="EXCELLENT">Excellent</option>
+                        <option value="STRONG">Strong</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="WEAK">Weak</option>
+                    </select>
+                </div>
+                <button onclick="clearFilters()" class="ml-auto text-gray-400 hover:text-white text-sm">
+                    Clear Filters
+                </button>
+            </div>
+        </div>
+
+        <!-- Signals Grid -->
+        <div id="signals-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Signals will be populated here -->
+            <div class="text-center py-12 text-gray-500 col-span-full">
+                <p>No signals yet</p>
+                <p class="text-sm mt-2">Go to Dashboard to generate signals</p>
+            </div>
+        </div>
+
+        <!-- Load More -->
+        <div class="text-center mt-6">
+            <button onclick="loadMoreSignals()" class="bg-gray-800 text-gray-300 px-6 py-2 rounded-lg hover:bg-gray-700 transition">
+                Load More
+            </button>
+        </div>
+    </main>
+
+    <!-- Signal Detail Modal -->
+    <div id="signal-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+        <div class="card rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">Signal Details</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div id="modal-content">
+                <!-- Will be populated -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let allSignals = [];
+        let displayedCount = 0;
+        const PAGE_SIZE = 12;
+
+        socket.on('new_signal', (signal) => {
+            allSignals.unshift(signal);
+            updateStats();
+            renderSignals();
+        });
+
+        async function loadSignals() {
+            try {
+                const response = await fetch('/api/signals?limit=100');
+                allSignals = await response.json();
+                updateStats();
+                renderSignals();
+            } catch (error) {
+                console.error('Error loading signals:', error);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('stat-total').textContent = allSignals.length;
+            document.getElementById('stat-bullish').textContent = allSignals.filter(s => s.bias === 'BULLISH').length;
+            document.getElementById('stat-bearish').textContent = allSignals.filter(s => s.bias === 'BEARISH').length;
+            
+            const today = new Date().toDateString();
+            document.getElementById('stat-today').textContent = allSignals.filter(s => 
+                new Date(s.timestamp).toDateString() === today
+            ).length;
+        }
+
+        function filterSignals() {
+            displayedCount = 0;
+            renderSignals();
+        }
+
+        function clearFilters() {
+            document.getElementById('filter-symbol').value = '';
+            document.getElementById('filter-bias').value = '';
+            document.getElementById('filter-plan').value = '';
+            document.getElementById('filter-strength').value = '';
+            filterSignals();
+        }
+
+        function getFilteredSignals() {
+            const symbol = document.getElementById('filter-symbol').value;
+            const bias = document.getElementById('filter-bias').value;
+            const plan = document.getElementById('filter-plan').value;
+            const strength = document.getElementById('filter-strength').value;
+
+            return allSignals.filter(s => {
+                if (symbol && s.symbol !== symbol) return false;
+                if (bias && s.bias !== bias) return false;
+                if (plan && s.plan !== plan) return false;
+                if (strength && s.signal_strength !== strength) return false;
+                return true;
+            });
+        }
+
+        function renderSignals() {
+            const filtered = getFilteredSignals();
+            const toShow = filtered.slice(0, displayedCount + PAGE_SIZE);
+            displayedCount = toShow.length;
+
+            const grid = document.getElementById('signals-grid');
+            
+            if (toShow.length === 0) {
+                grid.innerHTML = `
+                    <div class="text-center py-12 text-gray-500 col-span-full">
+                        <p>No signals match the filters</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = toShow.map(signal => createSignalCard(signal)).join('');
+        }
+
+        function createSignalCard(signal) {
+            const biasColor = signal.bias === 'BULLISH' ? 'border-green-400' : 'border-red-400';
+            const biasText = signal.bias === 'BULLISH' ? 'text-green-400' : 'text-red-400';
+            const strengthColors = {
+                'PERFECT': 'bg-purple-400/20 text-purple-400',
+                'EXCELLENT': 'bg-yellow-400/20 text-yellow-400',
+                'STRONG': 'bg-green-400/20 text-green-400',
+                'MEDIUM': 'bg-blue-400/20 text-blue-400',
+                'WEAK': 'bg-gray-400/20 text-gray-400'
+            };
+
+            return `
+                <div class="card signal-card rounded-xl p-4 border-l-4 ${biasColor} cursor-pointer" onclick="showSignalDetail(${signal.id})">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <span class="font-semibold">${signal.symbol}</span>
+                            <span class="text-gray-400 text-sm ml-2">${signal.plan}</span>
+                        </div>
+                        <span class="px-2 py-1 rounded text-xs ${strengthColors[signal.signal_strength] || ''}">${signal.signal_strength}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-2xl font-bold ${biasText}">${signal.bias}</span>
+                        <span class="text-gray-400">${signal.confidence}%</span>
+                    </div>
+                    
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Entry</span>
+                            <span class="font-mono">${signal.entry_price?.toFixed(2) || '--'}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Stop Loss</span>
+                            <span class="font-mono text-red-400">${signal.stop_loss?.toFixed(2) || '--'}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3 pt-3 border-t border-gray-700 flex justify-between items-center text-xs text-gray-400">
+                        <span>${new Date(signal.timestamp).toLocaleString()}</span>
+                        <span class="px-2 py-1 rounded ${signal.status === 'PENDING' ? 'bg-yellow-400/20 text-yellow-400' : 'bg-gray-600'}">${signal.status}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadMoreSignals() {
+            displayedCount += PAGE_SIZE;
+            renderSignals();
+        }
+
+        function showSignalDetail(id) {
+            const signal = allSignals.find(s => s.id === id);
+            if (!signal) return;
+
+            const modal = document.getElementById('signal-modal');
+            const content = document.getElementById('modal-content');
+            
+            const biasColor = signal.bias === 'BULLISH' ? 'text-green-400' : 'text-red-400';
+
+            content.innerHTML = `
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <div class="text-gray-400 text-sm">Symbol</div>
+                        <div class="text-xl font-semibold">${signal.symbol}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-sm">Plan</div>
+                        <div class="text-xl font-semibold">${signal.plan}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-sm">Bias</div>
+                        <div class="text-xl font-semibold ${biasColor}">${signal.bias} (${signal.confidence}%)</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-sm">Signal Strength</div>
+                        <div class="text-xl font-semibold">${signal.signal_strength}</div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-800 rounded-lg p-4 mb-4">
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <div class="text-gray-400 text-sm">Entry Zone</div>
+                            <div class="font-mono">${signal.entry_zone?.[0]?.toFixed(2)} - ${signal.entry_zone?.[1]?.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400 text-sm">Entry Price</div>
+                            <div class="font-mono text-yellow-400">${signal.entry_price?.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400 text-sm">Stop Loss</div>
+                            <div class="font-mono text-red-400">${signal.stop_loss?.toFixed(2)}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-gray-400 text-sm mb-2">Targets</div>
+                    <div class="space-y-2">
+                        ${(signal.targets || []).map(t => `
+                            <div class="flex justify-between bg-gray-800 rounded px-3 py-2">
+                                <span>${t.name}</span>
+                                <span class="font-mono text-green-400">${t.price?.toFixed(2)} (Level ${t.level})</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="text-gray-400 text-sm mb-2">Reasoning</div>
+                    <div class="bg-gray-800 rounded-lg p-3 space-y-1">
+                        ${(signal.reasoning || []).map(r => `<div class="text-sm">• ${r}</div>`).join('')}
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-4 text-center text-sm">
+                    <div>
+                        <div class="text-gray-400">Goldbach Time</div>
+                        <div>${signal.goldbach_time_confirm ? '✅ Yes' : '❌ No'}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400">AMD Cycle</div>
+                        <div>${signal.amd_cycle}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400">Partition Day</div>
+                        <div>${signal.monthly_partition_day}</div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex gap-4">
+                    <button onclick="resendToTelegram(${signal.id})" class="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-400 transition">
+                        📱 Send to Telegram
+                    </button>
+                    <button onclick="copySignal(${signal.id})" class="flex-1 bg-gray-700 text-white py-2 rounded-lg hover:bg-gray-600 transition">
+                        📋 Copy
+                    </button>
+                </div>
+            `;
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('signal-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function resendToTelegram(id) {
+            const signal = allSignals.find(s => s.id === id);
+            if (!signal) return;
+            
+            try {
+                await fetch('/api/signal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        price: signal.entry_price,
+                        symbol: signal.symbol,
+                        send_notification: true
+                    })
+                });
+                alert('Sent to Telegram!');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function copySignal(id) {
+            const signal = allSignals.find(s => s.id === id);
+            if (!signal) return;
+            
+            const text = `
+GOLDBACH SIGNAL
+Symbol: ${signal.symbol}
+Plan: ${signal.plan}
+Bias: ${signal.bias} (${signal.confidence}%)
+Strength: ${signal.signal_strength}
+Entry: ${signal.entry_price?.toFixed(2)}
+Stop Loss: ${signal.stop_loss?.toFixed(2)}
+Targets: ${(signal.targets || []).map(t => t.price?.toFixed(2)).join(', ')}
+            `.trim();
+            
+            navigator.clipboard.writeText(text);
+            alert('Copied to clipboard!');
+        }
+
+        // Close modal on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Initialize
+        loadSignals();
+    </script>
+</body>
+</html>

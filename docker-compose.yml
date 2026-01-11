@@ -1,0 +1,52 @@
+# Docker Compose for Goldbach Trading Platform
+version: '3.8'
+
+services:
+  goldbach:
+    build: .
+    container_name: goldbach-platform
+    ports:
+      - "5000:5000"
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY:-goldbach-secret-key}
+      - PORT=5000
+      
+      # Telegram (optional)
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      
+      # Discord (optional)
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
+      
+      # Trading symbols
+      - SYMBOLS=NQ,ES,EURUSD,XAUUSD
+      - DEFAULT_SYMBOL=NQ
+      - DEFAULT_PO3_SIZE=729
+      
+      # Data Providers (optional)
+      - TWELVEDATA_API_KEY=${TWELVEDATA_API_KEY:-}
+      - ALPHAVANTAGE_API_KEY=${ALPHAVANTAGE_API_KEY:-}
+      - POLYGON_API_KEY=${POLYGON_API_KEY:-}
+      
+      # TradingView
+      - TRADINGVIEW_WEBHOOK_SECRET=${TRADINGVIEW_WEBHOOK_SECRET:-}
+      
+      # Scheduler
+      - ENABLE_SCHEDULER=True
+      - AUTO_ANALYSIS_INTERVAL=60
+    
+    volumes:
+      - goldbach_data:/app/data
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  goldbach_data:

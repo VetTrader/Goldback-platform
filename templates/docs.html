@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation - Goldbach Trading Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+        .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+        .sidebar-link.active { background: rgba(234, 179, 8, 0.2); border-left: 3px solid #eab308; }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+    <!-- Header -->
+    <header class="border-b border-gray-700 py-4 sticky top-0 bg-[#1a1a2e]/90 backdrop-blur z-40">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-2xl font-bold text-yellow-400">GOLDBACH</h1>
+                <span class="text-gray-400">Documentation</span>
+            </div>
+            <nav class="flex space-x-6">
+                <a href="/" class="text-gray-400 hover:text-white">Dashboard</a>
+                <a href="/backtest" class="text-gray-400 hover:text-white">Backtest</a>
+                <a href="/signals" class="text-gray-400 hover:text-white">Signals</a>
+                <a href="/docs" class="text-yellow-400">Docs</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-6 flex gap-6">
+        <!-- Sidebar -->
+        <aside class="w-64 flex-shrink-0 hidden lg:block">
+            <div class="sticky top-24">
+                <nav class="space-y-1">
+                    <a href="#overview" class="sidebar-link block px-4 py-2 rounded text-gray-300 hover:bg-gray-800">Overview</a>
+                    <a href="#po3" class="sidebar-link block px-4 py-2 rounded text-gray-300 hover:bg-gray-800">PO3 Ranges</a>
+                    <a href="#levels" class="sidebar-link block px-4 py-2 rounded text-gray-300 hover:bg-gray-800">Goldbach Levels</a>
+                    <a href="#layers" class="sidebar-link block px-4 py-2 rounded text-gray-300 hover:bg-gray-800">3-Layer Framework</a>
+                    <a href="#bias" class="sidebar-link block px-4 py-2 rounded text-gray-300 hover:bg-gray-800">GIP Bias Detection</a>
+                    <a href="#time" class="sidebar-link block px-4 py-2 rounded text-gray-300 hover:bg-gray-800">Goldbach Time</a>
+                    <a href="#amd" class="sidebar-link block px-4 py-2 rounded text-gray-300 hover:bg-gray-800">AMD Cycles</a>
+                    <a href="#partitions" class="sidebar-link block px-4 py-2 rounded text-gray-300 hover:bg-gray-800">Monthly Partitions</a>
+                    <a href="#plans" class="sidebar-link block px-4 py-2 rounded text-gray-300 hover:bg-gray-800">Trade Plans</a>
+                    <a href="#workflow" class="sidebar-link block px-4 py-2 rounded text-gray-300 hover:bg-gray-800">Unified Workflow</a>
+                    <a href="#api" class="sidebar-link block px-4 py-2 rounded text-gray-300 hover:bg-gray-800">API Reference</a>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 max-w-4xl">
+            <!-- Overview -->
+            <section id="overview" class="card rounded-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-yellow-400">Overview</h2>
+                <p class="text-gray-300 mb-4">
+                    Goldbach Unified Trading Platform комбинира две мощни системи:
+                </p>
+                <ul class="list-disc list-inside text-gray-300 space-y-2 mb-4">
+                    <li><strong>Goldbach Trifecta</strong> - 3-Layer структура за визуална организация на нивата</li>
+                    <li><strong>Goldbach Fundamentals</strong> - Timing филтри (Goldbach Time, AMD Cycles, Monthly Partitions)</li>
+                </ul>
+                <div class="bg-yellow-400/10 border border-yellow-400/30 rounded-lg p-4">
+                    <p class="text-yellow-300"><strong>Ключова идея:</strong> Goldbach хипотезата казва, че всяко четно число може да се представи като сума от две прости числа. Тези прости числа формират ключовите нива в пазара.</p>
+                </div>
+            </section>
+
+            <!-- PO3 Ranges -->
+            <section id="po3" class="card rounded-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-yellow-400">PO3 Dealing Ranges</h2>
+                <p class="text-gray-300 mb-4">
+                    PO3 (Power of 3) определя размера на trading range-а. Използваме степени на 3:
+                </p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="text-gray-400 border-b border-gray-700">
+                            <tr>
+                                <th class="text-left py-2">PO3</th>
+                                <th class="text-left py-2">Размер</th>
+                                <th class="text-left py-2">Timeframe</th>
+                                <th class="text-left py-2">Употреба</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-300">
+                            <tr class="border-b border-gray-800"><td class="py-2">3¹</td><td>9</td><td>1M</td><td>Scalping</td></tr>
+                            <tr class="border-b border-gray-800"><td class="py-2">3²</td><td>27</td><td>5M</td><td>Scalping</td></tr>
+                            <tr class="border-b border-gray-800"><td class="py-2">3³</td><td>81</td><td>15M</td><td>Intraday</td></tr>
+                            <tr class="border-b border-gray-800"><td class="py-2">3⁴</td><td>243</td><td>1H</td><td>Intraday</td></tr>
+                            <tr class="border-b border-gray-800 bg-yellow-400/10"><td class="py-2 font-bold">3⁵</td><td class="font-bold">729</td><td class="font-bold">4H/Daily</td><td class="font-bold">Recommended</td></tr>
+                            <tr class="border-b border-gray-800"><td class="py-2">3⁶</td><td>2187</td><td>Weekly</td><td>Swing</td></tr>
+                            <tr><td class="py-2">3⁷</td><td>6561</td><td>Monthly</td><td>Position</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4 bg-gray-800 rounded-lg p-4">
+                    <p class="text-sm text-gray-400"><strong>Formula:</strong></p>
+                    <code class="text-green-400">Range Low = floor(Price / PO3) × PO3</code><br>
+                    <code class="text-green-400">Range High = Range Low + PO3</code>
+                </div>
+            </section>
+
+            <!-- Goldbach Levels -->
+            <section id="levels" class="card rounded-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-yellow-400">Goldbach Levels</h2>
+                <p class="text-gray-300 mb-4">
+                    Всеки range съдържа 21 ключови нива, базирани на Goldbach числата:
+                </p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="text-gray-400 border-b border-gray-700">
+                            <tr>
+                                <th class="text-left py-2">Level</th>
+                                <th class="text-left py-2">Name</th>
+                                <th class="text-left py-2">ICT Equivalent</th>
+                                <th class="text-left py-2">Layer</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-300">
+                            <tr class="border-b border-gray-800 bg-green-400/10"><td class="py-2">[0]</td><td>LOW</td><td>Range Low</td><td class="text-green-400">LIQUIDITY</td></tr>
+                            <tr class="border-b border-gray-800 bg-green-400/10"><td class="py-2">[3]</td><td>REJ</td><td>Rejection Block</td><td class="text-green-400">LIQUIDITY</td></tr>
+                            <tr class="border-b border-gray-800 bg-green-400/10"><td class="py-2">[7]</td><td>LLOD</td><td>Last Line of Defence</td><td class="text-green-400">LIQUIDITY</td></tr>
+                            <tr class="border-b border-gray-800 bg-green-400/10"><td class="py-2">[11]</td><td>IRL</td><td>Order Block</td><td class="text-green-400">LIQUIDITY</td></tr>
+                            <tr class="border-b border-gray-800 bg-yellow-400/20"><td class="py-2 font-bold">[17]</td><td class="font-bold">GIP</td><td>Fair Value Gap</td><td class="text-yellow-400 font-bold">LIQUIDITY (KEY)</td></tr>
+                            <tr class="border-b border-gray-800 text-gray-500"><td class="py-2">[23]</td><td>nGB</td><td>-</td><td>-</td></tr>
+                            <tr class="border-b border-gray-800 bg-blue-400/10"><td class="py-2">[29]</td><td>FLOW</td><td>Liquidity Void</td><td class="text-blue-400">FLOW</td></tr>
+                            <tr class="border-b border-gray-800 text-gray-500"><td class="py-2">[35]</td><td>nGB</td><td>-</td><td>-</td></tr>
+                            <tr class="border-b border-gray-800 bg-red-400/10"><td class="py-2">[41]</td><td>EXT.REB</td><td>Breaker</td><td class="text-red-400">REBALANCE</td></tr>
+                            <tr class="border-b border-gray-800 bg-red-400/10"><td class="py-2">[47]</td><td>INT.REB</td><td>Mitigation Block</td><td class="text-red-400">REBALANCE</td></tr>
+                            <tr class="border-b border-gray-800 bg-gray-700"><td class="py-2 font-bold">[50]</td><td class="font-bold">EQ</td><td>Equilibrium</td><td class="text-white font-bold">REBALANCE</td></tr>
+                            <tr class="border-b border-gray-800 bg-red-400/10"><td class="py-2">[53]</td><td>INT.REB</td><td>Mitigation Block</td><td class="text-red-400">REBALANCE</td></tr>
+                            <tr class="border-b border-gray-800 bg-red-400/10"><td class="py-2">[59]</td><td>EXT.REB</td><td>Breaker</td><td class="text-red-400">REBALANCE</td></tr>
+                            <tr class="border-b border-gray-800 text-gray-500"><td class="py-2">[65]</td><td>nGB</td><td>-</td><td>-</td></tr>
+                            <tr class="border-b border-gray-800 bg-blue-400/10"><td class="py-2">[71]</td><td>FLOW</td><td>Liquidity Void</td><td class="text-blue-400">FLOW</td></tr>
+                            <tr class="border-b border-gray-800 text-gray-500"><td class="py-2">[77]</td><td>nGB</td><td>-</td><td>-</td></tr>
+                            <tr class="border-b border-gray-800 bg-yellow-400/20"><td class="py-2 font-bold">[83]</td><td class="font-bold">GIP</td><td>Fair Value Gap</td><td class="text-yellow-400 font-bold">LIQUIDITY (KEY)</td></tr>
+                            <tr class="border-b border-gray-800 bg-green-400/10"><td class="py-2">[89]</td><td>IRL</td><td>Order Block</td><td class="text-green-400">LIQUIDITY</td></tr>
+                            <tr class="border-b border-gray-800 bg-green-400/10"><td class="py-2">[93]</td><td>LLOD</td><td>Last Line of Defence</td><td class="text-green-400">LIQUIDITY</td></tr>
+                            <tr class="border-b border-gray-800 bg-green-400/10"><td class="py-2">[97]</td><td>REJ</td><td>Rejection Block</td><td class="text-green-400">LIQUIDITY</td></tr>
+                            <tr class="bg-green-400/10"><td class="py-2">[100]</td><td>HIGH</td><td>Range High</td><td class="text-green-400">LIQUIDITY</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 3-Layer Framework -->
+            <section id="layers" class="card rounded-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-yellow-400">3-Layer Framework</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-green-400/10 border border-green-400/30 rounded-lg p-4">
+                        <h3 class="text-green-400 font-bold mb-2">LIQUIDITY LAYER</h3>
+                        <p class="text-sm text-gray-300 mb-2">Нива: [0-17] и [83-100]</p>
+                        <p class="text-sm text-gray-400">Зони за reversal и stop runs. Тук се намира най-много ликвидност.</p>
+                        <p class="text-sm text-green-300 mt-2"><strong>Trade:</strong> Counter-trend entries</p>
+                    </div>
+                    <div class="bg-blue-400/10 border border-blue-400/30 rounded-lg p-4">
+                        <h3 class="text-blue-400 font-bold mb-2">FLOW LAYER</h3>
+                        <p class="text-sm text-gray-300 mb-2">Нива: [29-35] и [65-71]</p>
+                        <p class="text-sm text-gray-400">Зони за continuation. Momentum trades.</p>
+                        <p class="text-sm text-blue-300 mt-2"><strong>Trade:</strong> Trend continuation</p>
+                    </div>
+                    <div class="bg-red-400/10 border border-red-400/30 rounded-lg p-4">
+                        <h3 class="text-red-400 font-bold mb-2">REBALANCE LAYER</h3>
+                        <p class="text-sm text-gray-300 mb-2">Нива: [41-59]</p>
+                        <p class="text-sm text-gray-400">Консолидация и range trading. Често chop zone.</p>
+                        <p class="text-sm text-red-300 mt-2"><strong>Trade:</strong> Range trading или изчакай пробив</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- GIP Bias Detection -->
+            <section id="bias" class="card rounded-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-yellow-400">GIP Bias Detection</h2>
+                <p class="text-gray-300 mb-4">
+                    GIP (Goldbach Inversion Point) на нива [17] и [83] определя bias-а:
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-green-400/10 border border-green-400/30 rounded-lg p-4">
+                        <h3 class="text-green-400 font-bold mb-2">🟢 BULLISH BIAS</h3>
+                        <ul class="text-sm text-gray-300 space-y-1">
+                            <li>• Цена под GIP [17] = Силен BULLISH</li>
+                            <li>• Цена под EQ [50] = Лек BULLISH</li>
+                            <li>• Търси LONG entries</li>
+                        </ul>
+                    </div>
+                    <div class="bg-red-400/10 border border-red-400/30 rounded-lg p-4">
+                        <h3 class="text-red-400 font-bold mb-2">🔴 BEARISH BIAS</h3>
+                        <ul class="text-sm text-gray-300 space-y-1">
+                            <li>• Цена над GIP [83] = Силен BEARISH</li>
+                            <li>• Цена над EQ [50] = Лек BEARISH</li>
+                            <li>• Търси SHORT entries</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="mt-4 bg-yellow-400/10 border border-yellow-400/30 rounded-lg p-4">
+                    <p class="text-yellow-300"><strong>Bias Shift:</strong> Когато цената премине от една GIP зона в друга, bias-ът се променя. Пример: От [83+] към [50-83] = Shift от силен BEARISH към лек BEARISH.</p>
+                </div>
+            </section>
+
+            <!-- Goldbach Time -->
+            <section id="time" class="card rounded-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-yellow-400">Goldbach Time</h2>
+                <p class="text-gray-300 mb-4">
+                    Goldbach Time е timing филтър: <code class="bg-gray-800 px-2 py-1 rounded">Hour + Minute = Goldbach Number</code>
+                </p>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div class="bg-gray-800 rounded-lg p-3 text-center">
+                        <div class="text-2xl font-bold text-yellow-400">03</div>
+                        <div class="text-sm text-gray-400">0+3, 1+2, 2+1, 3+0</div>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-3 text-center">
+                        <div class="text-2xl font-bold text-yellow-400">11</div>
+                        <div class="text-sm text-gray-400">2+9, 3+8, 4+7...</div>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-3 text-center">
+                        <div class="text-2xl font-bold text-yellow-400">17</div>
+                        <div class="text-sm text-gray-400">8+9, 9+8, 10+7...</div>
+                    </div>
+                    <div class="bg-gray-800 rounded-lg p-3 text-center">
+                        <div class="text-2xl font-bold text-yellow-400">29</div>
+                        <div class="text-sm text-gray-400">14+15, 15+14...</div>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-400">Пълен списък: 3, 11, 17, 29, 41, 47, 53, 59, 71, 83, 89, 97</p>
+                <div class="mt-4 bg-green-400/10 border border-green-400/30 rounded-lg p-4">
+                    <p class="text-green-300"><strong>Употреба:</strong> Сигнали, генерирани по време на Goldbach Time, имат по-висока вероятност за успех.</p>
+                </div>
+            </section>
+
+            <!-- AMD Cycles -->
+            <section id="amd" class="card rounded-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-yellow-400">AMD Cycles</h2>
+                <p class="text-gray-300 mb-4">
+                    AMD (Accumulation-Manipulation-Distribution) определя дневната структура:
+                </p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="text-gray-400 border-b border-gray-700">
+                            <tr>
+                                <th class="text-left py-2">Cycle</th>
+                                <th class="text-left py-2">CET</th>
+                                <th class="text-left py-2">EST</th>
+                                <th class="text-left py-2">Описание</th>
+                                <th class="text-left py-2">Trading</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-300">
+                            <tr class="border-b border-gray-800">
+                                <td class="py-2 font-bold text-purple-400">A (Asian)</td>
+                                <td>20:00-03:00</td>
+                                <td>14:00-21:00</td>
+                                <td>Consolidation, range marking</td>
+                                <td>Маркирай range-а, не търгувай</td>
+                            </tr>
+                            <tr class="border-b border-gray-800">
+                                <td class="py-2 font-bold text-red-400">M (Manipulation)</td>
+                                <td>03:00-09:00</td>
+                                <td>21:00-03:00</td>
+                                <td>London session, creates HOD/LOD 80%+</td>
+                                <td>Търси stop run на Asian range</td>
+                            </tr>
+                            <tr class="border-b border-gray-800">
+                                <td class="py-2 font-bold text-green-400">D1 (Distribution 1)</td>
+                                <td>09:00-12:00</td>
+                                <td>03:00-06:00</td>
+                                <td>NY AM, main move</td>
+                                <td>Continuation или reversal на M</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 font-bold text-blue-400">D2 (Distribution 2)</td>
+                                <td>12:00-16:00</td>
+                                <td>06:00-10:00</td>
+                                <td>NY PM, profit taking</td>
+                                <td>Внимавай - чести reversals</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Monthly Partitions -->
+            <section id="partitions" class="card rounded-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-yellow-400">Monthly Partitions</h2>
+                <p class="text-gray-300 mb-4">
+                    Всеки месец има специфичен "partition start day" и очакван stop run в пипсове:
+                </p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="text-gray-400 border-b border-gray-700">
+                            <tr>
+                                <th class="text-left py-2">Месец</th>
+                                <th class="text-center py-2">Start Day</th>
+                                <th class="text-center py-2">Number</th>
+                                <th class="text-left py-2">Key Days</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-300">
+                            <tr class="border-b border-gray-800"><td class="py-2">Януари</td><td class="text-center">8</td><td class="text-center">18</td><td>Day 3, 11, 17</td></tr>
+                            <tr class="border-b border-gray-800"><td class="py-2">Февруари</td><td class="text-center">7</td><td class="text-center">27</td><td>Day 3, 11, 17</td></tr>
+                            <tr class="border-b border-gray-800"><td class="py-2">Март</td><td class="text-center">6</td><td class="text-center">36</td><td>Day 3, 11, 17</td></tr>
+                            <tr class="border-b border-gray-800"><td class="py-2">Април</td><td class="text-center">5</td><td class="text-center">45</td><td>Day 3, 11, 17</td></tr>
+                            <tr class="border-b border-gray-800"><td class="py-2">Май</td><td class="text-center">4</td><td class="text-center">54</td><td>Day 3, 11, 17</td></tr>
+                            <tr class="border-b border-gray-800"><td class="py-2">Юни</td><td class="text-center">3</td><td class="text-center">63</td><td>Day 3, 11, 17</td></tr>
+                            <tr class="border-b border-gray-800"><td class="py-2">Юли</td><td class="text-center">2</td><td class="text-center">72</td><td>Day 3, 11, 17</td></tr>
+                            <tr class="border-b border-gray-800"><td class="py-2">Август</td><td class="text-center">1</td><td class="text-center">81</td><td>Day 3, 11, 17</td></tr>
+                            <tr class="border-b border-gray-800"><td class="py-2">Септември</td><td class="text-center">9</td><td class="text-center">99</td><td>Day 3, 11, 17</td></tr>
+                            <tr class="border-b border-gray-800"><td class="py-2">Октомври</td><td class="text-center">8</td><td class="text-center">108</td><td>Day 3, 11, 17</td></tr>
+                            <tr class="border-b border-gray-800"><td class="py-2">Ноември</td><td class="text-center">7</td><td class="text-center">117</td><td>Day 3, 11, 17</td></tr>
+                            <tr><td class="py-2">Декември</td><td class="text-center">6</td><td class="text-center">126</td><td>Day 3, 11, 17</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4 bg-gray-800 rounded-lg p-4">
+                    <p class="text-sm text-gray-400"><strong>Key Days:</strong></p>
+                    <ul class="text-sm text-gray-300 mt-2 space-y-1">
+                        <li>• <strong>Day 3:</strong> POI clue day - търси gap/block/liquidity</li>
+                        <li>• <strong>Day 11:</strong> First major swing (Goldbach number)</li>
+                        <li>• <strong>Day 17:</strong> Second swing if day 11 didn't complete</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Trade Plans -->
+            <section id="plans" class="card rounded-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-yellow-400">Trade Plans</h2>
+                
+                <div class="space-y-4">
+                    <div class="bg-purple-400/10 border border-purple-400/30 rounded-lg p-4">
+                        <h3 class="text-purple-400 font-bold mb-2">EINSTEIN PLAN ⭐</h3>
+                        <p class="text-sm text-gray-300 mb-2">Най-печелившият план - влизане в GAP между [11-17] или [83-89]</p>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div><span class="text-gray-400">Entry:</span> Liquidity Layer GAP</div>
+                            <div><span class="text-gray-400">Targets:</span> [47-53] partial, [41-59] full</div>
+                            <div><span class="text-gray-400">Stop:</span> Под LLOD [7] или над LLOD [93]</div>
+                            <div><span class="text-gray-400">Best for:</span> Reversal от extremes</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-green-400/10 border border-green-400/30 rounded-lg p-4">
+                        <h3 class="text-green-400 font-bold mb-2">LIQUIDITY PLAN</h3>
+                        <p class="text-sm text-gray-300 mb-2">Влизане при stop run близо до range edges [3-11] или [89-97]</p>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div><span class="text-gray-400">Entry:</span> Extreme levels след stop run</div>
+                            <div><span class="text-gray-400">Targets:</span> External liquidity</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-blue-400/10 border border-blue-400/30 rounded-lg p-4">
+                        <h3 class="text-blue-400 font-bold mb-2">FLOW CONTINUATION PLAN</h3>
+                        <p class="text-sm text-gray-300 mb-2">Следване на momentum в Flow Layer [29-35] или [65-71]</p>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div><span class="text-gray-400">Entry:</span> Flow Layer pullback</div>
+                            <div><span class="text-gray-400">Targets:</span> Rebalance → противоположен Flow</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-red-400/10 border border-red-400/30 rounded-lg p-4">
+                        <h3 class="text-red-400 font-bold mb-2">REBALANCE PLAN</h3>
+                        <p class="text-sm text-gray-300 mb-2">Range trading в Rebalance Layer [41-59]</p>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div><span class="text-gray-400">Entry:</span> Edge на Rebalance</div>
+                            <div><span class="text-gray-400">Targets:</span> Противоположен edge</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Unified Workflow -->
+            <section id="workflow" class="card rounded-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-yellow-400">Unified Workflow</h2>
+                <div class="bg-gray-800 rounded-lg p-4 font-mono text-sm">
+                    <pre class="text-gray-300">
+┌─────────────────────────────────────────┐
+│         STRUCTURE (Trifecta)            │
+├─────────────────────────────────────────┤
+│ 1. Определи PO3 Range                   │
+│ 2. Начертай 3-те Layer-a               │
+│ 3. Определи BIAS чрез GIP              │
+└─────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────┐
+│         TIMING (Fundamentals)           │
+├─────────────────────────────────────────┤
+│ 4. Провери AMD Cycle                    │
+│ 5. Провери Goldbach Time               │
+│ 6. Провери Monthly Partition Day        │
+└─────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────┐
+│            EXECUTION                    │
+├─────────────────────────────────────────┤
+│ 7. Избери Trade Plan                    │
+│ 8. Изчакай Entry Trigger               │
+│ 9. ИЗПЪЛНИ с ясен SL/TP                │
+└─────────────────────────────────────────┘
+                    </pre>
+                </div>
+            </section>
+
+            <!-- API Reference -->
+            <section id="api" class="card rounded-xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-yellow-400">API Reference</h2>
+                
+                <div class="space-y-4">
+                    <div class="bg-gray-800 rounded-lg p-4">
+                        <h4 class="text-green-400 font-mono mb-2">POST /api/analyze</h4>
+                        <p class="text-sm text-gray-400 mb-2">Пълен анализ на цена</p>
+                        <pre class="text-xs text-gray-300 bg-gray-900 p-2 rounded">
+{
+  "price": 21500,
+  "symbol": "NQ",
+  "po3_size": 729,
+  "trend_days": 0
+}</pre>
+                    </div>
+                    
+                    <div class="bg-gray-800 rounded-lg p-4">
+                        <h4 class="text-green-400 font-mono mb-2">POST /api/signal</h4>
+                        <p class="text-sm text-gray-400 mb-2">Генериране на trading сигнал</p>
+                        <pre class="text-xs text-gray-300 bg-gray-900 p-2 rounded">
+{
+  "price": 21500,
+  "symbol": "NQ",
+  "send_notification": true
+}</pre>
+                    </div>
+                    
+                    <div class="bg-gray-800 rounded-lg p-4">
+                        <h4 class="text-green-400 font-mono mb-2">POST /api/backtest</h4>
+                        <p class="text-sm text-gray-400 mb-2">Стартиране на backtest</p>
+                        <pre class="text-xs text-gray-300 bg-gray-900 p-2 rounded">
+{
+  "data": [{"date": "2025-01-01", "open": 21000, ...}],
+  "config": {
+    "initial_capital": 10000,
+    "position_size_pct": 2.0,
+    "min_signal_strength": "MEDIUM"
+  }
+}</pre>
+                    </div>
+                    
+                    <div class="bg-gray-800 rounded-lg p-4">
+                        <h4 class="text-blue-400 font-mono mb-2">GET /api/goldbach-time</h4>
+                        <p class="text-sm text-gray-400">Текущо Goldbach време</p>
+                    </div>
+                    
+                    <div class="bg-gray-800 rounded-lg p-4">
+                        <h4 class="text-blue-400 font-mono mb-2">GET /api/amd-cycle</h4>
+                        <p class="text-sm text-gray-400">Текущ AMD цикъл</p>
+                    </div>
+                    
+                    <div class="bg-gray-800 rounded-lg p-4">
+                        <h4 class="text-blue-400 font-mono mb-2">GET /api/levels/{range_num}</h4>
+                        <p class="text-sm text-gray-400">Goldbach нива за range</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Highlight active section in sidebar
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    document.querySelectorAll('.sidebar-link').forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === '#' + entry.target.id) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('section').forEach(section => {
+            observer.observe(section);
+        });
+    </script>
+</body>
+</html>
